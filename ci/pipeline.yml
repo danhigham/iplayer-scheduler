@@ -8,6 +8,10 @@ jobs:
   - get: get-iplayer-scheduler
   - task: run-get-iplayer
     file: get-iplayer-scheduler/ci/run-get-iplayer.yml
+    params:
+      DO_TOKEN: ((do_token))
+      SSH_KEY_ID: ((ssh_key_id)) 
+      RSA_KEY: ((private_rsa_key))
   - put: get-iplayer-config
 
 resources:
