@@ -1,0 +1,27 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    
+inputs:
+- name: get-iplayer-config
+  path: config
+
+- name: get-iplayer-scheduler
+  path: scheduler
+    
+outputs:
+- name: get-iplayer-config
+  path: config
+
+run:
+  path: scheduler/ci/run ./config
+
+params:
+  DO_TOKEN: {{do_token}}
+  SSH_KEY_ID: {{ssh_key_id}} 
+  RSA_KEY: {{private_rsa_key}}
+   

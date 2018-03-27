@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e -u -x
+go get github.com/danhigham/iplayer-scheduler
+$GOPATH/bin/iplayer-scheduler $1
