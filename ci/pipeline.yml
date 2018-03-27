@@ -1,0 +1,26 @@
+---
+jobs:
+- name: build-iplayer-docker-image
+  public: true
+  serial: true
+  plan:
+  - get: get-iplayer-config
+  - get: get-iplayer-scheduler
+  - task: run-get-iplayer
+    file: run-get-iplayer.yml
+  - put: get-iplayer-config
+
+resources:
+
+- name: get-iplayer-config
+  type: git
+  source:
+    uri: https://github.com/get_iplayer_config
+    branch: master
+
+- name: get-iplayer-scheduler 
+  type: git
+  source:
+    uri: https://github.com/danhigham/iplayer-scheduler.git 
+    branch: master
+
