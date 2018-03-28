@@ -1,0 +1,12 @@
+#!/bin/bash
+
+tar xvzf ./iplayer_config.tgz -C $1-out
+tar xvzf ./iplayer_incoming.tgz
+
+git config --global user.name "Pivotal Concourse"
+git config --global user.email "ci@example.com" #todo: better email....
+ 
+pushd ./$1-out
+git add -A .
+git commit -m "Commiting release candiate for PR"
+popd

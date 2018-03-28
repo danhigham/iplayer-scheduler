@@ -43,7 +43,7 @@ func check(e error) {
 func main() {
 	
 	args := os.Args[1:]
-	configFolder := args[0]
+	//configFolder := args[0]
 	privateKey, err := ssh.ParsePrivateKey([]byte(os.Getenv("RSA_KEY")))
 	check(err)
 
@@ -193,15 +193,9 @@ func main() {
 	messages <- "Deleting droplet\n"
 	client.Droplets.Delete(ctx, newDroplet.ID)
 		
-	messages <- "Expanding archives\n"	
-	cmd := exec.Command("tar", "xvzf", "./iplayer_config.tgz", "-C", fmt.Sprintf("%s-out", configFolder))
+	messages <- "Finishing up\n"	
+	cmd := exec.Command("./ci/commit-changes")
 	out, err := cmd.Output()
-
-	check(err)
-	messages <- string(out)
-	
-	cmd = exec.Command("tar", "xvzf", "./iplayer_incoming.tgz")
-	out, err = cmd.Output()
 
 	check(err)
 	messages <- string(out)
