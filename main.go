@@ -173,6 +173,7 @@ func main() {
 		//"tar xvzf /home/core/iplayer_config.tgz -C /home/core/.get_iplayer",
 		//"docker cp /home/core/.get_iplayer get-iplayer:/root/.get_iplayer",
 		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
+		"docker exec -it get-iplayer /tmp/iplayer_incoming",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr",
 		"docker cp get-iplayer:/root/.get_iplayer /home/core",
 		"docker cp get-iplayer:/tmp/iplayer_incoming /home/core",
