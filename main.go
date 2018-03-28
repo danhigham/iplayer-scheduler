@@ -175,8 +175,10 @@ func main() {
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr",
 		"docker cp get-iplayer:/root/.get_iplayer /home/core/.get_iplayer",
 		"docker cp get-iplayer:/tmp/iplayer_incoming /home/core/iplayer_incoming",
-		"pushd /home/core/.get_iplayer; tar cvzf /home/core/iplayer_config.tgz .; popd;",
-		"pushd /home/core/iplayer_incoming; tar cvzf /home/core/iplayer_incoming.tgz *; popd;", 
+		"tar cvzf iplayer_config.tgz -C /home/core/.get_iplayer .",
+		"tar cvzf iplayer_incoming.tgz -C /home/core/iplayer_incoming .",
+		//"pushd /home/core/.get_iplayer; tar cvzf /home/core/iplayer_config.tgz .; popd;",
+		//"pushd /home/core/iplayer_incoming; tar cvzf /home/core/iplayer_incoming.tgz *; popd;", 
 	}
 
 	err = executeCmds(cmds, sshClient, messages)
