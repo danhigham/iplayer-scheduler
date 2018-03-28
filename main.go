@@ -191,7 +191,7 @@ func main() {
 	client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Expanding archives\n"	
-	cmd = exec.Command("tar", "xvzf", "./iplayer_config.tgz", "-C", configFolder)
+	cmd = exec.Command("tar", "xvzf", "./iplayer_config.tgz", "-C", fmt.Sprintf("%s-out", configFolder))
 	out, err = cmd.Output()
 
 	check(err)
