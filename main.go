@@ -43,7 +43,7 @@ func check(e error) {
 func main() {
 	
 	args := os.Args[1:]
-	//configFolder := args[0]
+	configFolder := args[0]
 	privateKey, err := ssh.ParsePrivateKey([]byte(os.Getenv("RSA_KEY")))
 	check(err)
 
@@ -194,7 +194,7 @@ func main() {
 	client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Finishing up\n"	
-	cmd := exec.Command("./ci/commit-changes")
+	cmd := exec.Command("./ci/commit-changes", configFolder)
 	out, err := cmd.Output()
 
 	check(err)
