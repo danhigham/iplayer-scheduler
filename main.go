@@ -152,26 +152,27 @@ func main() {
 	
 	defer session.Close()
 
-	messages <- "Creating config archive\n"
+	//messages <- "Creating config archive\n"
 
-	cmd := exec.Command("tar", "cvzf", "config.tgz", "-C", configFolder, ".")
-	out, err := cmd.Output()
+	//cmd := exec.Command("tar", "cvzf", "config.tgz", "-C", configFolder, ".")
+	//out, err := cmd.Output()
 
-	check(err)
+	//check(err)
 
-	messages <- string(out)
+	//messages <- string(out)
 
 	// Copy config files
-	err = scp.CopyPath("config.tgz", "/home/core/iplayer_config.tgz", session)
-	check(err)
+	//err = scp.CopyPath("config.tgz", "/home/core/iplayer_config.tgz", session)
+	//check(err)
 
 	messages <- "Starting docker container\n"
 
 	cmds := []string {
 		"docker run -d --name get-iplayer danhigham/get-iplayer tail -f /root/get_iplayer/README.md",
-		"mkdir -pv /home/core/.get_iplayer",
-		"tar xvzf /home/core/iplayer_config.tgz -C /home/core/.get_iplayer",
-		"docker cp /home/core/.get_iplayer get-iplayer:/root/.get_iplayer",
+		//"mkdir -pv /home/core/.get_iplayer",
+		//"tar xvzf /home/core/iplayer_config.tgz -C /home/core/.get_iplayer",
+		//"docker cp /home/core/.get_iplayer get-iplayer:/root/.get_iplayer",
+		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr",
 		"docker cp get-iplayer:/root/.get_iplayer /home/core",
 		"docker cp get-iplayer:/tmp/iplayer_incoming /home/core",
@@ -193,8 +194,8 @@ func main() {
 	client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Expanding archives\n"	
-	cmd = exec.Command("tar", "xvzf", "./iplayer_config.tgz", "-C", fmt.Sprintf("%s-out", configFolder))
-	out, err = cmd.Output()
+	cmd := exec.Command("tar", "xvzf", "./iplayer_config.tgz", "-C", fmt.Sprintf("%s-out", configFolder))
+	out, err := cmd.Output()
 
 	check(err)
 	messages <- string(out)
