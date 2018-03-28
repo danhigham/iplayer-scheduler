@@ -194,7 +194,7 @@ func main() {
 	client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Finishing up\n"	
-	cmd := exec.Command("./ci/commit-changes", configFolder)
+	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
 	out, err := cmd.Output()
 
 	check(err)
