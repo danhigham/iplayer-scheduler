@@ -8,5 +8,5 @@ git config --global user.email "ci@example.com" #todo: better email....
  
 pushd ./$1-out
 git add -A .
-git commit -m "Commiting release candiate for PR"
+git commit -m "Update config"
 popd

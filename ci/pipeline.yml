@@ -13,7 +13,7 @@ jobs:
       SSH_KEY_ID: ((ssh_key_id)) 
       RSA_KEY: ((private_rsa_key))
   - put: get-iplayer-config
-
+    params: { repository: "get-iplayer-config" } 
 resources:
 
 - name: get-iplayer-config
