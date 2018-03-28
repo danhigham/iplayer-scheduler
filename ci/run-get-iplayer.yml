@@ -18,6 +18,7 @@ outputs:
   path: config-out
 
 run:
-  path: scheduler/ci/run ./config
-
+  path: scheduler/ci/run
+  args:
+  - ./config
    
