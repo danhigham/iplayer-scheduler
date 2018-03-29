@@ -4,6 +4,8 @@ jobs:
   public: true
   serial: true
   plan:
+  - get: go-time
+    trigger: true
   - get: get-iplayer-config
   - get: get-iplayer-scheduler
   - task: run-get-iplayer
@@ -25,6 +27,13 @@ resource_types:
     tag: latest
 
 resources:
+
+- name: go-time
+  type: time
+  source:
+    start: 1:00 AM
+    location: America/Los_Angeles
+
 - name: plex-rsync
   type: rsync-resource
   source:
