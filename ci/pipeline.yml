@@ -15,7 +15,6 @@ jobs:
   - put: get-iplayer-config
     params: { repository: "get-iplayer-config" }
   - put: plex-rsync
-resources:
 
 resource_types:
 - name: rsync-resource
@@ -24,11 +23,12 @@ resource_types:
     repository: mrsixw/concourse-rsync-resource
     tag: latest
 
+resources:
 - name: plex-rsync
   type: rsync-resource
   source:
     server: 192.168.10.5
-    base_dir: /Plex Media/BBC
+    base_dir: /volume1/Plex\ Media/BBC
     user: ((rsync_user))
     private_key: ((private_rsa_key))
 

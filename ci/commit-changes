@@ -1,7 +1,7 @@
 #!/bin/bash
 
 tar xvzf ./iplayer_config.tgz -C $1-out
-tar xvzf ./iplayer_incoming.tgz
+tar xvzf ./iplayer_incoming.tgz -C iplayer_incoming
 
 git config --global user.name "Pivotal Concourse"
 git config --global user.email "ci@example.com" #todo: better email....
