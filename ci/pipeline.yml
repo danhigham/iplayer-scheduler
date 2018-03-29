@@ -13,8 +13,24 @@ jobs:
       SSH_KEY_ID: ((ssh_key_id)) 
       RSA_KEY: ((private_rsa_key))
   - put: get-iplayer-config
-    params: { repository: "get-iplayer-config" } 
+    params: { repository: "get-iplayer-config" }
+  - put: plex-rsync
 resources:
+
+resource_types:
+- name: rsync-resource
+  type: docker-image
+  source:
+    repository: mrsixw/concourse-rsync-resource
+    tag: latest
+
+- name: plex-rsync
+  type: rsync-resource
+  source:
+    server: 192.168.10.5
+    base_dir: /Plex Media/BBC
+    user: ((rsync_user))
+    private_key: ((private_rsa_key))
 
 - name: get-iplayer-config
   type: git

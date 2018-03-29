@@ -17,6 +17,9 @@ outputs:
 - name: get-iplayer-config
   path: config-out
 
+- name: iplayer_incoming
+  path: iplayer_incoming
+
 run:
   path: scheduler/ci/run
   args:
