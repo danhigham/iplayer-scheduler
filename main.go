@@ -87,7 +87,7 @@ func main() {
 	createRequest := &godo.DropletCreateRequest{
 		Name:   dropletName,
 		Region: "lon1",
-		Size:   "512mb",
+		Size:   "4gb",
 		Image: godo.DropletCreateImage{
 			Slug: "coreos-stable",
 		},
@@ -169,9 +169,6 @@ func main() {
 
 	cmds := []string {
 		"docker run -d --name get-iplayer danhigham/get-iplayer tail -f /root/get_iplayer/README.md",
-		//"mkdir -pv /home/core/.get_iplayer",
-		//"tar xvzf /home/core/iplayer_config.tgz -C /home/core/.get_iplayer",
-		//"docker cp /home/core/.get_iplayer get-iplayer:/root/.get_iplayer",
 		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer mkdir -p /tmp/iplayer_incoming",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr",
@@ -179,8 +176,6 @@ func main() {
 		"docker cp get-iplayer:/tmp/iplayer_incoming /home/core",
 		"tar cvzf iplayer_config.tgz -C /home/core/.get_iplayer .",
 		"tar cvzf iplayer_incoming.tgz -C /home/core/iplayer_incoming .",
-		//"pushd /home/core/.get_iplayer; tar cvzf /home/core/iplayer_config.tgz .; popd;",
-		//"pushd /home/core/iplayer_incoming; tar cvzf /home/core/iplayer_incoming.tgz *; popd;", 
 	}
 
 	err = executeCmds(cmds, sshClient, messages)
@@ -192,7 +187,7 @@ func main() {
 	check(err)
 
 	messages <- "Deleting droplet\n"
-	// client.Droplets.Delete(ctx, newDroplet.ID)
+	client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Finishing up\n"	
 	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
@@ -297,7 +292,7 @@ func write(w io.WriteCloser, command string) error {
 }
 
 func readUntil(r io.Reader, matchingByte []byte, messages chan string) (*string, error) {
-    var buf [1024 * 1024]byte
+    var buf [10240 * 1024]byte
     var t int
 	o := 0
     for {
