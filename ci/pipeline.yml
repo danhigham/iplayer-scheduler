@@ -15,12 +15,13 @@ jobs:
   - put: get-iplayer-config
     params: { repository: "get-iplayer-config" }
   - put: plex-rsync
+    params: { "sync_dir" : "iplayer_incoming" }
 
 resource_types:
 - name: rsync-resource
   type: docker-image
   source:
-    repository: mrsixw/concourse-rsync-resource
+    repository: danhigham/concourse-rsync-resource
     tag: latest
 
 resources:
@@ -28,9 +29,10 @@ resources:
   type: rsync-resource
   source:
     server: 192.168.10.5
-    base_dir: /volume1/Plex\ Media/BBC
+    base_dir: :Plex\ Media/BBC
     user: ((rsync_user))
     private_key: ((private_rsa_key))
+    disable_version_path: true
 
 - name: get-iplayer-config
   type: git
