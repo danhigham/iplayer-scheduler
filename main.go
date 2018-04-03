@@ -130,7 +130,7 @@ func main() {
 		_, connErr = net.DialTimeout("tcp", sshAddress, 2*time.Second)
 	}
 
-	messages <- "Connecting\n"
+	messages <- fmt.Sprintf("Connecting to %s\n", ipAddress)
 
 	// try and connect
 	config := &ssh.ClientConfig{
