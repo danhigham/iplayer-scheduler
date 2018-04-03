@@ -187,7 +187,7 @@ func main() {
 	check(err)
 
 	messages <- "Deleting droplet\n"
-	client.Droplets.Delete(ctx, newDroplet.ID)
+	// client.Droplets.Delete(ctx, newDroplet.ID)
 		
 	messages <- "Finishing up\n"	
 	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
