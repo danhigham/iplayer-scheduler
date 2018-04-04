@@ -32,6 +32,7 @@ resources:
   type: time
   source:
     start: 1:00 AM
+    stop: 6:00 AM
     location: America/Los_Angeles
 
 - name: plex-rsync
