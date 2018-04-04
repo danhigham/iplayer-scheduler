@@ -87,7 +87,7 @@ func main() {
 	createRequest := &godo.DropletCreateRequest{
 		Name:   dropletName,
 		Region: "lon1",
-		Size:   "8gb",
+		Size:   "4444gb",
 		Image: godo.DropletCreateImage{
 			Slug: "coreos-stable",
 		},
