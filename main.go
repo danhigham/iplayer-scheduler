@@ -171,6 +171,7 @@ func main() {
 		"docker run -d --name get-iplayer danhigham/get-iplayer tail -f /root/get_iplayer/README.md",
 		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer mkdir -p /tmp/iplayer_incoming",
+		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --refresh",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr -v",
 		"docker cp get-iplayer:/root/.get_iplayer /home/core",
 		"docker cp get-iplayer:/tmp/iplayer_incoming /home/core",
