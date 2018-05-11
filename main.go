@@ -2,24 +2,24 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/digitalocean/godo"
-	"github.com/digitalocean/godo/context"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/oauth2"
-	"github.com/danhigham/scp"
+	"io"
 	"log"
-	"github.com/fatih/color"
-	"strings"
 	"net"
 	"os"
-	"time"
-	"strconv"
-	"path"
 	"os/exec"
-	"io"
-)
+	"path"
+	"strconv"
+	"strings"
+	"time"
 
+	"github.com/danhigham/scp"
+	"github.com/digitalocean/godo"
+	"github.com/fatih/color"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/oauth2"
+)
 
 var escapePrompt = []byte("$ ")
 
@@ -41,7 +41,7 @@ func check(e error) {
 }
 
 func main() {
-	
+
 	args := os.Args[1:]
 	configFolder := args[0]
 	privateKey, err := ssh.ParsePrivateKey([]byte(os.Getenv("RSA_KEY")))
@@ -143,13 +143,13 @@ func main() {
 
 	sshClient, err := ssh.Dial("tcp", sshAddress, config)
 	check(err)
-	
+
 	session, err := sshClient.NewSession()
 	check(err)
-	
+
 	var b bytes.Buffer  // import "bytes"
 	session.Stdout = &b // get output
-	
+
 	defer session.Close()
 
 	//messages <- "Creating config archive\n"
@@ -167,7 +167,7 @@ func main() {
 
 	messages <- "Starting docker container\n"
 
-	cmds := []string {
+	cmds := []string{
 		"docker run -d --name get-iplayer danhigham/get-iplayer tail -f /root/get_iplayer/README.md",
 		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer mkdir -p /tmp/iplayer_incoming",
@@ -182,15 +182,15 @@ func main() {
 	err = executeCmds(cmds, sshClient, messages)
 	check(err)
 
-	messages <- "Downloading files from droplet\n"  
+	messages <- "Downloading files from droplet\n"
 
-	err = downloadRemoteFiles([]string {"/home/core/iplayer_config.tgz", "/home/core/iplayer_incoming.tgz"}, sshClient, messages)
+	err = downloadRemoteFiles([]string{"/home/core/iplayer_config.tgz", "/home/core/iplayer_incoming.tgz"}, sshClient, messages)
 	check(err)
 
 	messages <- "Deleting droplet\n"
 	client.Droplets.Delete(ctx, newDroplet.ID)
-		
-	messages <- "Finishing up\n"	
+
+	messages <- "Finishing up\n"
 	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
 	out, err := cmd.Output()
 
@@ -202,7 +202,7 @@ func downloadRemoteFiles(files []string, client *ssh.Client, messages chan strin
 	for _, file := range files {
 		messages <- fmt.Sprintf("Downloading %s\n", file)
 		fileSize, err := getRemoteFileSize(file, client)
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 		session, err := client.NewSession()
@@ -210,7 +210,7 @@ func downloadRemoteFiles(files []string, client *ssh.Client, messages chan strin
 			return err
 		}
 		err = scp.GetPath(fileSize, file, path.Base(file), session)
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 	}
@@ -236,90 +236,89 @@ func evalCmd(cmd string, client *ssh.Client) ([]byte, error) {
 	return session.Output(cmd)
 }
 
-func executeCmds(cmd []string, client *ssh.Client, messages chan string) (error) {
-	
-	
+func executeCmds(cmd []string, client *ssh.Client, messages chan string) error {
+
 	session, err := client.NewSession()
 
-    if err != nil {
+	if err != nil {
 		return err
-    }
-    defer session.Close()
+	}
+	defer session.Close()
 
-    modes := ssh.TerminalModes{
-        ssh.ECHO:          0,     // disable echoing
-        ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-        ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-    }
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
 
-    if err := session.RequestPty("vt220", 80, 40, modes); err != nil {
+	if err := session.RequestPty("vt220", 80, 40, modes); err != nil {
 		return err
-    }
+	}
 
-    w, err := session.StdinPipe()
-    if err != nil {
+	w, err := session.StdinPipe()
+	if err != nil {
 		return err
-    }
-    r, err := session.StdoutPipe()
-    if err != nil {
+	}
+	r, err := session.StdoutPipe()
+	if err != nil {
 		return err
-    }
-	
+	}
+
 	if err := session.Start("/usr/bin/bash"); err != nil {
 		return err
-    }
+	}
 
 	readUntil(r, escapePrompt, messages)
-	
+
 	for _, currentCmd := range cmd {
-    	messages <- fmt.Sprintf("Running command '%s'\n", currentCmd) 
+		messages <- fmt.Sprintf("Running command '%s'\n", currentCmd)
 		write(w, currentCmd)
-		
+
 		_, err := readUntil(r, escapePrompt, messages)
 		if err != nil {
 			return err
 		}
 	}
 
-    write(w, "exit")
-    session.Wait()
+	write(w, "exit")
+	session.Wait()
 
 	return nil
 }
 
 func write(w io.WriteCloser, command string) error {
-    _, err := w.Write([]byte(command + "\n"))
-    return err
+	_, err := w.Write([]byte(command + "\n"))
+	return err
 }
 
 func readUntil(r io.Reader, matchingByte []byte, messages chan string) (*string, error) {
-    var buf [10240 * 1024]byte
-    var t int
+	var buf [10240 * 1024]byte
+	var t int
 	o := 0
-    for {
-		
-        n, err := r.Read(buf[t:])
-        if err != nil {
-            return nil, err
-        }
-        t += n
+	for {
+
+		n, err := r.Read(buf[t:])
+		if err != nil {
+			return nil, err
+		}
+		t += n
 		messages <- string(buf[o:t])
 		o = t
 		if isMatch(buf[:t], t, matchingByte) {
-            stringResult := string(buf[:t])
+			stringResult := string(buf[:t])
 			return &stringResult, nil
-        }
-    }
+		}
+	}
 }
 
 func isMatch(bytes []byte, t int, matchingBytes []byte) bool {
-    if t >= len(matchingBytes) {
-        for i := 0; i < len(matchingBytes); i++ {
-            if bytes[t - len(matchingBytes) + i] != matchingBytes[i] {
-                return false
-            }
-        }
-        return true
-    }
-    return false
+	if t >= len(matchingBytes) {
+		for i := 0; i < len(matchingBytes); i++ {
+			if bytes[t-len(matchingBytes)+i] != matchingBytes[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
