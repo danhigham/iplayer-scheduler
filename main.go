@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chiefy/linodego"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+
 	"github.com/danhigham/scp"
 
 	"github.com/fatih/color"
@@ -69,53 +73,52 @@ func main() {
 		}
 	}()
 
-	apiToken, _ := os.LookupEnv("LINODE_TOKEN")
+	messages <- "Creating EC2 instance\n"
 
-	linodeClient := linodego.NewClient(&apiToken, nil)
+	// AWS_ACCESS_KEY_ID
+	// AWS_SECRET_ACCESS_KEY
 
-	messages <- "Creating Linode instance\n"
-
-	//name := "get-iplayer"
-	//sshKeyID, err := strconv.Atoi(os.Getenv("SSH_KEY_ID"))
-
-	linode, err := linodeClient.CreateInstance(&linodego.InstanceCreateOptions{
-		//Label:          name,
-		Region:         "eu-west",
-		Type:           "g6-standard-2",
-		Image:          "linode/containerlinux",
-		RootPass:       "password123",
-		AuthorizedKeys: []string{os.Getenv("RSA_KEY_PUB")},
+	svc := ec2.New(session.New(&aws.Config{Region: aws.String("eu-west-2")}))
+	reservation, err := svc.RunInstances(&ec2.RunInstancesInput{
+		// An Amazon Linux AMI ID for t2.micro instances in the us-west-2 region
+		ImageId:        aws.String("ami-00985bd8806d05c41"),
+		InstanceType:   aws.String("t2.micro"),
+		KeyName:        aws.String("get-iplayer"),
+		SecurityGroups: []*string{aws.String("allow-ssh")},
+		MinCount:       aws.Int64(1),
+		MaxCount:       aws.Int64(1),
 	})
 
 	check(err)
 
-	//ctx := context.TODO()
+	instanceIds := make([]*string, len(reservation.Instances))
 
-	event, err := linodeClient.WaitForEventFinished(linode.ID, linodego.EntityLinode, linodego.ActionLinodeCreate, *linode.Created, 240)
-	check(err)
-	if err := linodeClient.MarkEventRead(event); err != nil {
-		check(err)
+	for k, v := range reservation.Instances {
+		instanceIds[k] = v.InstanceId
 	}
 
-	// wait for the IP address
+	statusInput := ec2.DescribeInstancesInput{
+		InstanceIds: instanceIds,
+	}
 
-	ipAddress := linode.IPv4[0]
+	messages <- "Waiting for instance to become running\n"
 
+	ctx := context.Background()
+
+	instanceOkErr := svc.WaitUntilInstanceRunningWithContext(ctx, &statusInput)
+	check(instanceOkErr)
+
+	description, descriptionErr := svc.DescribeInstancesWithContext(ctx, &statusInput)
+	check(descriptionErr)
+
+	instance := description.Reservations[0].Instances[0]
+
+	ipAddress := instance.PublicIpAddress
+	instanceId := instance.InstanceId
 	check(err)
 
-	/* messages <- "Waiting for IP Address\n"
-
-	for ipAddress == "" {
-		time.Sleep(2 * time.Second)
-		dl, _, err := client.Droplets.Get(ctx, newDroplet.ID)
-		ipAddress, err = dl.PublicIPv4()
-
-		if err != nil {
-			log.Panic("Unable to get IP address: %s\n\n", err)
-		}
-	} */
-
-	sshAddress := fmt.Sprintf("%s:22", ipAddress)
+	sshAddress := fmt.Sprintf("%s:22", *ipAddress)
+	messages <- fmt.Sprintf("SSH address is %s\n", sshAddress)
 
 	// wait for SSH
 	messages <- "Waiting for SSH\n"
@@ -125,7 +128,7 @@ func main() {
 		_, connErr = net.DialTimeout("tcp", sshAddress, 2*time.Second)
 	}
 
-	messages <- fmt.Sprintf("Connecting to %s\n", ipAddress)
+	messages <- fmt.Sprintf("Connecting to %s\n", sshAddress)
 
 	// try and connect
 	config := &ssh.ClientConfig{
@@ -165,13 +168,17 @@ func main() {
 	err = executeCmds(cmds, sshClient, messages)
 	check(err)
 
-	messages <- "Downloading files from droplet\n"
+	messages <- "Downloading files from EC2 instance\n"
 
 	err = downloadRemoteFiles([]string{"/home/core/iplayer_config.tgz", "/home/core/iplayer_incoming.tgz"}, sshClient, messages)
 	check(err)
 
-	messages <- "Deleting droplet\n"
-	linodeClient.DeleteInstance(linode.ID)
+	messages <- "Deleting EC2 instance\n"
+	_, err = svc.TerminateInstances(&ec2.TerminateInstancesInput{
+		InstanceIds: []*string{instanceId},
+	})
+
+	check(err)
 
 	messages <- "Finishing up\n"
 	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
