@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -14,8 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chiefy/linodego"
 	"github.com/danhigham/scp"
-	"github.com/digitalocean/godo"
+
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
@@ -44,9 +44,8 @@ func main() {
 
 	args := os.Args[1:]
 	configFolder := args[0]
-	privateKey, err := ssh.ParsePrivateKey([]byte(os.Getenv("RSA_KEY")))
-	check(err)
 
+	privateKey, err := ssh.ParsePrivateKey([]byte(os.Getenv("RSA_KEY")))
 	green := color.New(color.FgGreen)
 	boldGreen := green.Add(color.Bold)
 
@@ -70,45 +69,41 @@ func main() {
 		}
 	}()
 
-	tokenSource := &TokenSource{
-		AccessToken: os.Getenv("DO_TOKEN"),
-	}
+	apiToken, _ := os.LookupEnv("LINODE_TOKEN")
 
-	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
-	client := godo.NewClient(oauthClient)
+	linodeClient := linodego.NewClient(&apiToken, nil)
 
-	messages <- "Creating CoreOS droplet\n"
+	messages <- "Creating Linode instance\n"
 
-	dropletName := "get-iplayer"
-	sshKeyID, err := strconv.Atoi(os.Getenv("SSH_KEY_ID"))
+	//name := "get-iplayer"
+	//sshKeyID, err := strconv.Atoi(os.Getenv("SSH_KEY_ID"))
 
-	check(err)
-
-	createRequest := &godo.DropletCreateRequest{
-		Name:   dropletName,
-		Region: "lon1",
-		Size:   "4gb",
-		Image: godo.DropletCreateImage{
-			Slug: "coreos-stable",
-		},
-		SSHKeys: []godo.DropletCreateSSHKey{godo.DropletCreateSSHKey{
-			ID: sshKeyID,
-		}},
-	}
-
-	ctx := context.TODO()
-
-	newDroplet, _, err := client.Droplets.Create(ctx, createRequest)
+	linode, err := linodeClient.CreateInstance(&linodego.InstanceCreateOptions{
+		//Label:          name,
+		Region:         "eu-west",
+		Type:           "g6-standard-2",
+		Image:          "linode/containerlinux",
+		RootPass:       "password123",
+		AuthorizedKeys: []string{os.Getenv("RSA_KEY_PUB")},
+	})
 
 	check(err)
+
+	//ctx := context.TODO()
+
+	event, err := linodeClient.WaitForEventFinished(linode.ID, linodego.EntityLinode, linodego.ActionLinodeCreate, *linode.Created, 240)
+	check(err)
+	if err := linodeClient.MarkEventRead(event); err != nil {
+		check(err)
+	}
 
 	// wait for the IP address
 
-	ipAddress, err := newDroplet.PublicIPv4()
+	ipAddress := linode.IPv4[0]
 
 	check(err)
 
-	messages <- "Waiting for IP Address\n"
+	/* messages <- "Waiting for IP Address\n"
 
 	for ipAddress == "" {
 		time.Sleep(2 * time.Second)
@@ -118,7 +113,7 @@ func main() {
 		if err != nil {
 			log.Panic("Unable to get IP address: %s\n\n", err)
 		}
-	}
+	} */
 
 	sshAddress := fmt.Sprintf("%s:22", ipAddress)
 
@@ -152,23 +147,11 @@ func main() {
 
 	defer session.Close()
 
-	//messages <- "Creating config archive\n"
-
-	//cmd := exec.Command("tar", "cvzf", "config.tgz", "-C", configFolder, ".")
-	//out, err := cmd.Output()
-
-	//check(err)
-
-	//messages <- string(out)
-
-	// Copy config files
-	//err = scp.CopyPath("config.tgz", "/home/core/iplayer_config.tgz", session)
-	//check(err)
-
 	messages <- "Starting docker container\n"
 
 	cmds := []string{
-		"docker run -d --name get-iplayer danhigham/get-iplayer tail -f /root/get_iplayer/README.md",
+		"docker run -d --name get-iplayer harbor.high.am:443/get-iplayer/get-iplayer tail -f /root/get_iplayer/README.md",
+		"docker exec -it get-iplayer curl ifconfig.co/json | jq",
 		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer mkdir -p /tmp/iplayer_incoming",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --refresh",
@@ -188,7 +171,7 @@ func main() {
 	check(err)
 
 	messages <- "Deleting droplet\n"
-	client.Droplets.Delete(ctx, newDroplet.ID)
+	linodeClient.DeleteInstance(linode.ID)
 
 	messages <- "Finishing up\n"
 	cmd := exec.Command("./scheduler/ci/commit-changes", configFolder)
@@ -196,6 +179,7 @@ func main() {
 
 	check(err)
 	messages <- string(out)
+
 }
 
 func downloadRemoteFiles(files []string, client *ssh.Client, messages chan string) error {
