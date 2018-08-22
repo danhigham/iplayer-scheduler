@@ -163,8 +163,7 @@ func main() {
 	cmds := []string{
 		"docker run -d --name get-iplayer harbor.high.am:443/get-iplayer/get-iplayer tail -f /root/get_iplayer/README.md",
 		"docker exec -it get-iplayer curl ifconfig.co/json | jq",
-		"ssh-agent bash -c 'ssh-add <(echo \"$GIT_RSA_KEY\"); ssh://git@git.high.am:2222/danhigham/get-iplayer-config.git'",
-		"docker exec -it get-iplayer git clone https://github.com/danhigham/get_iplayer_config.git /root/.get_iplayer",
+		"docker exec -it get-iplayer git clone https://git.high.am/danhigham/get-iplayer-config.git /root/.get_iplayer",
 		"docker exec -it get-iplayer mkdir -p /tmp/iplayer_incoming",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --refresh",
 		"docker exec -it get-iplayer /root/get_iplayer/get_iplayer --pvr -v",

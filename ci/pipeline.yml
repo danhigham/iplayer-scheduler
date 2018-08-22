@@ -26,7 +26,7 @@ resources:
 - name: get-iplayer-config
   type: git
   source:
-    uri: git@github.com:danhigham/get_iplayer_config.git
+    uri: ssh://git@git.high.am:2222/danhigham/get-iplayer-config.git
     private_key: ((private_rsa_key))
     branch: master
 
@@ -60,6 +60,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ((ec2_access_key))
       AWS_SECRET_ACCESS_KEY: ((ec2_secret))
       RSA_KEY: ((ec2_rsa_key))
+      GIT_RSA_KEY: ((private_rsa_key))
   - put: get-iplayer-config
     params: { repository: "get-iplayer-config" }
   - put: plex-rsync
