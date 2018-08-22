@@ -87,6 +87,14 @@ func main() {
 		SecurityGroups: []*string{aws.String("allow-ssh")},
 		MinCount:       aws.Int64(1),
 		MaxCount:       aws.Int64(1),
+		BlockDeviceMappings: []*ec2.BlockDeviceMapping{
+			{
+				DeviceName: aws.String("/dev/xvda"),
+				Ebs: &ec2.EbsBlockDevice{
+					VolumeSize: aws.Int64(200),
+				},
+			},
+		},
 	})
 
 	check(err)
