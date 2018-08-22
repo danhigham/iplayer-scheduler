@@ -1,32 +1,11 @@
 ---
-jobs:
-- name: run-get-iplayer
-  public: true
-  serial: true
-  plan:
-  - get: go-time
-    trigger: true
-  - get: get-iplayer-config
-  - get: get-iplayer-scheduler
-  - task: run-get-iplayer
-    file: get-iplayer-scheduler/ci/run-get-iplayer.yml
-    params:
-      DO_TOKEN: ((do_token))
-      SSH_KEY_ID: ((ssh_key_id)) 
-      RSA_KEY: ((private_rsa_key))
-  - put: get-iplayer-config
-    params: { repository: "get-iplayer-config" }
-  - put: plex-rsync
-    params: { "sync_dir" : "iplayer_incoming" }
-
-resource_types:
-- name: rsync-resource
-  type: docker-image
-  source:
-    repository: danhigham/concourse-rsync-resource
-    tag: latest
 
 resources:
+
+- name: manualtrigger
+  type: time           # technique to trigger and propagate manual execution through pipeline
+  source:
+    interval: 1m
 
 - name: go-time
   type: time
@@ -51,9 +30,44 @@ resources:
     private_key: ((private_rsa_key))
     branch: master
 
-- name: get-iplayer-scheduler 
+- name: get-iplayer-scheduler
   type: git
   source:
-    uri: https://github.com/danhigham/iplayer-scheduler.git 
+    uri: https://github.com/danhigham/iplayer-scheduler.git
     branch: master
 
+jobs:
+- name: Manual-trigger
+  plan:
+  - get: manualtrigger
+    trigger: false
+
+- name: run-get-iplayer
+  public: true
+  serial: true
+  plan:
+  - get: get-iplayer-config
+  - get: get-iplayer-scheduler
+  - get: go-time
+    trigger: true
+  - get: manualtrigger
+    trigger: true
+    passed:
+      - Manual-trigger
+  - task: run-get-iplayer
+    file: get-iplayer-scheduler/ci/run-get-iplayer.yml
+    params:
+      AWS_ACCESS_KEY_ID: ((ec2_access_key))
+      AWS_SECRET_ACCESS_KEY: ((ec2_secret))
+      RSA_KEY: ((ec2_rsa_key))
+  - put: get-iplayer-config
+    params: { repository: "get-iplayer-config" }
+  - put: plex-rsync
+    params: { "sync_dir" : "iplayer_incoming" }
+
+resource_types:
+- name: rsync-resource
+  type: docker-image
+  source:
+    repository: danhigham/concourse-rsync-resource
+    tag: latest
