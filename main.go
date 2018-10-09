@@ -82,7 +82,7 @@ func main() {
 	reservation, err := svc.RunInstances(&ec2.RunInstancesInput{
 		// An Amazon Linux AMI ID for t2.micro instances in the us-west-2 region
 		ImageId:        aws.String("ami-00985bd8806d05c41"),
-		InstanceType:   aws.String("t2.micro"),
+		InstanceType:   aws.String("t3.medium"),
 		KeyName:        aws.String("get-iplayer"),
 		SecurityGroups: []*string{aws.String("allow-ssh")},
 		MinCount:       aws.Int64(1),
