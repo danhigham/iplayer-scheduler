@@ -161,6 +161,7 @@ func main() {
 	messages <- "Starting docker container\n"
 
 	cmds := []string{
+		"sudo systemctl stop update-engine",
 		"docker run -d --name get-iplayer harbor.high.am:443/get-iplayer/get-iplayer tail -f /root/get_iplayer/README.md",
 		"docker exec -it get-iplayer curl ifconfig.co/json | jq",
 		"docker exec -it get-iplayer git clone https://git.high.am/danhigham/get-iplayer-config.git /root/.get_iplayer",
