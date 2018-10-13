@@ -17,7 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	scp "github.com/bramvdbogaerde/go-scp"
+
+	"github.com/danhigham/scp"
+
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
@@ -25,11 +27,11 @@ import (
 
 var escapePrompt = []byte("$ ")
 
-type tokenSource struct {
+type TokenSource struct {
 	AccessToken string
 }
 
-func (t *tokenSource) Token() (*oauth2.Token, error) {
+func (t *TokenSource) Token() (*oauth2.Token, error) {
 	token := &oauth2.Token{
 		AccessToken: t.AccessToken,
 	}
@@ -120,7 +122,7 @@ func main() {
 	instance := description.Reservations[0].Instances[0]
 
 	ipAddress := instance.PublicIpAddress
-	instanceID := instance.InstanceId
+	instanceId := instance.InstanceId
 	check(err)
 
 	sshAddress := fmt.Sprintf("%s:22", *ipAddress)
@@ -177,12 +179,12 @@ func main() {
 
 	messages <- "Downloading files from EC2 instance\n"
 
-	err = downloadRemoteFiles([]string{"/home/core/iplayer_config.tgz", "/home/core/iplayer_incoming.tgz"}, sshAddress, config, messages)
+	err = downloadRemoteFiles([]string{"/home/core/iplayer_config.tgz", "/home/core/iplayer_incoming.tgz"}, sshClient, messages)
 	check(err)
 
 	messages <- "Deleting EC2 instance\n"
 	_, err = svc.TerminateInstances(&ec2.TerminateInstancesInput{
-		InstanceIds: []*string{instanceID},
+		InstanceIds: []*string{instanceId},
 	})
 
 	check(err)
@@ -196,24 +198,21 @@ func main() {
 
 }
 
-func downloadRemoteFiles(files []string, sshAddress string, clientConfig *ssh.ClientConfig, messages chan string) error {
-	client := scp.NewClient(sshAddress, clientConfig)
-	// Connect to the remote server
-	err := client.Connect()
-	if err != nil {
-		return err
-	}
-
-	defer client.Close()
-
+func downloadRemoteFiles(files []string, client *ssh.Client, messages chan string) error {
 	for _, file := range files {
 		messages <- fmt.Sprintf("Downloading %s\n", file)
-
-		f, _ := os.Open(path.Base(file))
-
-		defer f.Close()
-		client.CopyFile(f, file, "0655")
-
+		fileSize, err := getRemoteFileSize(file, client)
+		if err != nil {
+			return err
+		}
+		session, err := client.NewSession()
+		if err != nil {
+			return err
+		}
+		err = scp.GetPath(fileSize, file, path.Base(file), session)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
